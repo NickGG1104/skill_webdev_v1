@@ -1,109 +1,97 @@
-# webdev — Web Development Standard Skill
+# web-developer
 
-A Claude Code agent skill that enforces a consistent, production-ready web development standard for internal LAN applications. Covers both new project generation and refactoring of existing codebases.
+A standardized Agent Skill for building or refactoring web applications on LAN/intranet environments. All frontend libraries are served locally — no CDN dependency at runtime.
 
 ---
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend Framework | Vue 3 CDN — Options API |
+| Frontend framework | Vue 3 CDN, Options API |
 | Charts | Chart.js with animations |
 | Alerts / Dialogs | SweetAlert2 |
-| HTTP Client | Axios |
-| Icons | Font Awesome 6 |
-| CSS | Custom CSS (no Tailwind) |
-| Backend | Python 3.9+ / Flask (FastAPI on request) |
+| HTTP client | Axios |
+| Icons | Inline SVG sprite (no webfonts, no icon libraries) |
+| CSS | Custom CSS, no Tailwind |
+| Backend | Python 3.9+ / Flask |
 | ORM | SQLAlchemy (MySQL + SQLite dual support) |
-| Authentication | Windows Active Directory via `ldap3` |
-| CDN Strategy | All frontend libraries downloaded locally — LAN/offline safe |
+| Authentication | Windows Active Directory via ldap3 |
 
 ---
 
-## Requirements
+## File structure
 
-- [Claude Code](https://claude.ai/code) (for `/webdev` slash command)
-- Python 3.9+ (for vendor download script and backend)
-- Internet access once (for `download_vendors.py`)
+```
+Skills/
+├── .claude/skills/web-developer/
+│   └── SKILL.md          # Agent Skills format (Claude Code / claude.ai / API)
+├── AGENTS.md             # Universal system prompt (Cursor, Windsurf, ChatGPT, etc.)
+├── README.md
+└── test-project/         # Working demo — Task Management Dashboard
+```
 
 ---
 
 ## Installation
 
-### Option A — Claude Code Slash Command (project-level)
+### Claude Code (Agent Skills — auto-triggered)
 
-Copy `.claude/commands/webdev.md` into your project:
+Copy the skill directory into your project:
 
 ```bash
-mkdir -p your-project/.claude/commands
-cp .claude/commands/webdev.md your-project/.claude/commands/webdev.md
+mkdir -p your-project/.claude/skills/web-developer
+cp .claude/skills/web-developer/SKILL.md your-project/.claude/skills/web-developer/SKILL.md
 ```
 
-Then inside your project directory, invoke with:
+Claude will automatically use the skill when you ask to build or refactor a web project. No slash command needed.
 
-```
-/webdev 幫我建一個庫存管理系統
-```
+### Other platforms (universal system prompt)
 
-### Option B — Universal System Prompt (all platforms)
-
-Copy the contents of `AGENTS.md` and paste as the system prompt / custom instructions in any AI tool:
+Paste the contents of `AGENTS.md` as the system prompt / custom instructions:
 
 | Platform | Where to paste |
 |----------|---------------|
-| Claude.ai Projects | Project → Instructions |
+| Claude.ai Projects | Project > Instructions |
 | Cursor | `.cursor/rules/webdev.mdc` |
 | Windsurf | `.windsurfrules` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
-| ChatGPT Custom GPT | Configure → Instructions |
-| OpenAI Codex CLI | `AGENTS.md` in project root (auto-loaded) |
+| ChatGPT Custom GPT | Configure > Instructions |
+| OpenAI Codex CLI | `AGENTS.md` in project root |
 
 ---
 
 ## Usage
 
-### New Project
+### New project
 
-Describe what you want to build:
-
-```
-/webdev 幫我建一個請假申請系統，功能包含申請、主管審核、查詢紀錄
-```
-
-The skill will:
-1. Generate the full project structure
-2. Write all backend (Flask) and frontend (Vue 3) code
-3. Include `download_vendors.py` to localize all CDN files
-4. Include `.env.example` for configuration
-
-### Refactor Existing Project
-
-Point the skill at existing code:
+Describe what you want to build. Claude detects the skill and applies the standard:
 
 ```
-/webdev 這是現有專案，請重構成標準規範 [describe or paste existing structure]
+幫我做一個請假申請系統，功能包含申請、主管審核、查詢紀錄
 ```
 
-The skill will:
-1. Analyze the current tech stack
-2. Output a **deviation report** (table of what needs to change)
-3. Wait for your confirmation
-4. Refactor file by file
+### Refactor existing project
+
+```
+把這個 React 專案重構成標準規範
+```
+
+Claude will output a deviation report first and wait for confirmation before making changes.
 
 ---
 
-## After Generating a Project
+## After generating a project
 
 ```bash
 cd your-project
 
-# 1. Download all frontend vendor files (run once)
+# 1. Download all frontend vendor files (run once, requires internet)
 python download_vendors.py
 
-# 2. Copy and configure environment
+# 2. Configure environment
 cp .env.example .env
-# Edit .env: set DB_TYPE, LDAP_SERVER, etc.
+# Edit .env — set DB_TYPE, LDAP_SERVER, etc.
 
 # 3. Install Python dependencies
 pip install -r requirements.txt
@@ -114,63 +102,9 @@ python app.py
 
 ---
 
-## Design Rules Enforced
+## Test project
 
-- **No Tailwind CSS** — custom CSS with CSS custom properties
-- **No Composition API** — Vue 3 Options API only, no `setup()`, no `ref()`
-- **No native alert/confirm** — SweetAlert2 for all user dialogs
-- **Chart animations required** — every Chart.js instance must have `animation.duration` and `animation.easing`
-- **Touch-friendly** — all interactive elements minimum 44×44px
-- **Mobile-first responsive** — works at 320px minimum width
-- **Python 3.9 compatible** — no `match`, no `X | Y` runtime union syntax
-- **LAN safe** — zero external CDN dependencies at runtime
-
----
-
-## High-Concurrency Handling
-
-Flask is the default backend. If your requirements include:
-- Real-time features / WebSocket
-- Background task queues
-- Simultaneous users exceeding ~500
-
-The skill will ask: **"是否改用 FastAPI？"** before generating backend code.
-
----
-
-## Authentication
-
-Windows Active Directory authentication via LDAP (`ldap3`). Session-based (no JWT by default).
-
-**Test mode**: If `LDAP_SERVER` is empty in `.env`, the backend accepts `admin / admin` for local development without a real AD server.
-
----
-
-## File Structure
-
-```
-your-project/
-├── .claude/commands/webdev.md   # Claude Code slash command
-├── static/vendor/               # localized CDN files (after download_vendors.py)
-├── static/css/main.css
-├── static/js/app.js
-├── templates/
-├── models/database.py           # SQLAlchemy models
-├── routes/api.py                # RESTful API  /api/v1/
-├── routes/auth.py               # AD auth + login_required decorator
-├── services/ldap_service.py     # LDAP connection wrapper
-├── config.py                    # MySQL / SQLite switch via .env
-├── app.py
-├── requirements.txt
-├── download_vendors.py
-└── .env.example
-```
-
----
-
-## Test Project
-
-A working Task Management Dashboard is included in `test-project/` to verify the skill output end-to-end.
+A working Task Management Dashboard is in `test-project/` to verify the skill output end-to-end.
 
 ```bash
 cd test-project
@@ -178,25 +112,47 @@ python download_vendors.py
 pip install -r requirements.txt
 cp .env.example .env
 python app.py
-# open http://localhost:5000
-# login: admin / admin  (test mode, no real AD needed)
+# open http://localhost:5100
+# login: admin / admin  (test mode, no AD server required)
 ```
 
 Features demonstrated:
-- Windows AD login (with test bypass)
-- Task CRUD with SweetAlert2 dialogs
-- Chart.js doughnut + bar charts with animations
-- Responsive mobile layout
-- Font Awesome icons
-- Axios API calls
+
+- Windows AD login with test-mode bypass
+- Task CRUD with SweetAlert2 dialogs and toast notifications
+- Chart.js doughnut and bar charts with animations
+- Inline SVG icon sprite (zero network requests for icons)
+- Responsive mobile layout with sidebar drawer
+- Axios API calls with consistent JSON response format
 - Vue 3 Options API throughout
+
+---
+
+## Rules enforced
+
+- No Tailwind CSS
+- No Composition API (`setup()`, `ref()`, `reactive()`)
+- No `alert()` / `confirm()` — SweetAlert2 only
+- No icon font libraries or webfonts — inline SVG sprite only
+- Chart animations required on every chart instance
+- Touch targets minimum 44x44px
+- Python 3.9 compatible syntax
+- All DB queries through SQLAlchemy ORM
+- No external CDN URLs in production HTML
+
+---
+
+## High-concurrency handling
+
+Flask is the default. If requirements involve WebSocket, real-time features, or more than ~500 simultaneous users, the skill will ask before proceeding:
+
+"此需求可能需要高併發支援，是否改用 FastAPI？"
 
 ---
 
 ## Contributing
 
-Issues and PRs welcome. When proposing changes to the skill rules, update both:
-- `.claude/commands/webdev.md` (Claude Code version)
-- `AGENTS.md` (universal version)
+When updating rules, keep both files in sync:
 
-Keep both files in sync.
+- `.claude/skills/web-developer/SKILL.md` — Agent Skills format
+- `AGENTS.md` — universal system prompt format
